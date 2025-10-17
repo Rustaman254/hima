@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src",              // Source code location
+    "outDir": "./dist",              // Compiled output location
+    "module": "esnext",            // Use CommonJS for Node.js, or "esnext" if using ESM
+    "target": "esnext",              // Latest JS features
+    "moduleResolution": "node",      // Module resolution for Node.js
+    "lib": ["esnext"],               // Latest JS library files
+    "types": ["node"],               // Node.js type definitions
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",              // If not using React, you can remove this line
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
