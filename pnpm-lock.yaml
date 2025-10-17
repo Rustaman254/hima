@@ -53,6 +53,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
+      libphonenumber-js:
+        specifier: ^1.12.24
+        version: 1.12.24
       mongoose:
         specifier: ^8.19.1
         version: 8.19.1
@@ -1822,6 +1825,9 @@ packages:
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
     engines: {node: '>=6'}
+
+  libphonenumber-js@1.12.24:
+    resolution: {integrity: sha512-l5IlyL9AONj4voSd7q9xkuQOL4u8Ty44puTic7J88CmdXkxfGsRfoVLXHCxppwehgpb/Chdb80FFehHqjN3ItQ==}
 
   lighthouse-logger@1.4.2:
     resolution: {integrity: sha512-gPWxznF6TKmUHrOQjlVo2UbaL2EJ71mb2CCeRs/2qBpi4L/g4LUVc9+3lKQ6DTUZwJswfM7ainGrLO1+fOqa2g==}
@@ -5044,6 +5050,8 @@ snapshots:
       json-buffer: 3.0.1
 
   leven@3.1.0: {}
+
+  libphonenumber-js@1.12.24: {}
 
   lighthouse-logger@1.4.2:
     dependencies:

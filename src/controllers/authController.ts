@@ -7,7 +7,7 @@ import { sendOTP } from '../utils/smsUtil';
 import User from '../models/user/User';
 import type { IUser } from '../models/user/User';
 import { createPrivyWallet, createPolkadotWallet } from '../utils/privyUtil';
-import { deployWalletOnNetwork } from '../utils/blockchainDeploy';
+import { deployWalletOnNetworks } from '../utils/blockchainDeploy';
 import { BlockchainNetwork } from '../configs/blockchain';
 
 dotenv.config();
@@ -16,6 +16,27 @@ export const OnboardingStepKeys = [
   'phoneVerified', 'nameAdded', 'photoAdded', 'mobileMoneyLinked',
   'nationalIdAdded', 'bodaRegNoAdded', 'communityEndorsements'
 ];
+
+function normalizeKenyanPhone(phone: string): string {
+  let normalized = phone.replace(/\D/g, '');
+
+  if (normalized.startsWith('07') && normalized.length === 10) {
+    return '+254' + normalized.slice(1);
+  }
+  if (normalized.startsWith('7') && normalized.length === 9) {
+    return '+254' + normalized;
+  }
+  if (normalized.startsWith('254') && normalized.length === 12) {
+    return '+' + normalized;
+  }
+  if (normalized.startsWith('01') && normalized.length === 10) {
+    return '+254' + normalized.slice(1);
+  }
+  if (normalized.startsWith('+254') && normalized.length === 13) {
+    return normalized;
+  }
+  throw new Error('Invalid Kenyan phone number');
+}
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -120,46 +141,45 @@ export const sendOTPToPhone = async (req: Request, res: Response) => {
 
 export const verifyOTP = async (req: Request, res: Response) => {
   try {
-    const { phone, otp, blockchainNetwork } = req.body;
+    const { phone, otp, blockchainNetworks } = req.body;
+    // blockchainNetworks is an array, e.g. ['base', 'polkadot']
 
-    if (!phone || !otp || !blockchainNetwork) {
-      return res.status(400).json({ message: 'Phone, OTP, and blockchainNetwork required' });
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizeKenyanPhone(phone);
+    } catch {
+      return res.status(400).json({ message: 'Invalid phone number format' });
     }
 
-    // Find and verify OTP
-    const otpDoc = await OTP.findOne({ phone, otp, verified: false }).sort({ createdAt: -1 });
+    const otpDoc = await OTP.findOne({ phone: normalizedPhone, otp, verified: false }).sort({ createdAt: -1 });
     if (!otpDoc) return res.status(400).json({ message: 'Invalid code' });
     if (otpDoc.expiresAt < new Date()) return res.status(400).json({ message: 'OTP expired' });
     otpDoc.verified = true;
     await otpDoc.save();
 
-    // Find user
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ phone: normalizedPhone });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Update onboarding steps
     user.phoneVerified = true;
     user.onboardingSteps['phoneVerified'] = true;
     user.onboardingSteps['mobileMoneyLinked'] = true;
     await user.save();
 
-    // Deploy wallet on selected blockchain
-    let txHash: string | undefined = undefined;
+    let deployResults: any = {};
     try {
-      txHash = await deployWalletOnNetwork(
+      deployResults = await deployWalletOnNetworks(
         user.walletId,
         user.walletAddress,
-        blockchainNetwork as BlockchainNetwork
+        user.polkadotMnemonic,
+        blockchainNetworks as BlockchainNetwork[]
       );
     } catch (onchainError) {
-      // Do not block onboarding on onchain failure, but log it for admins
       console.error('Onchain wallet activation error:', onchainError);
     }
 
-    // Respond
     res.status(200).json({
       message: 'OTP verified, phone number confirmed',
-      txHash,
+      deployResults,
       user: {
         phone: user.phone,
         phoneVerified: user.phoneVerified,

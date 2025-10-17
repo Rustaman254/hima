@@ -27,6 +27,7 @@
     "ethr-did": "^3.0.38",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "libphonenumber-js": "^1.12.24",
     "mongoose": "^8.19.1",
     "permissionless": "^0.2.57",
     "twilio": "^5.10.3",
