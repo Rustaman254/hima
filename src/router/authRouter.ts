@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter } from 'express';
-import { registerUser, sendOTPToPhone, verifyOTP } from '../controllers/authController';
+import { registerUser, sendOTPToPhone, verifyOTP, onboard } from '../controllers/authController';
 
 
 const router: ExpressRouter = Router();
@@ -7,9 +7,7 @@ const router: ExpressRouter = Router();
 router.post('/register', registerUser);
 router.post('/send-otp', sendOTPToPhone);
 router.post('/verify-otp', verifyOTP);
-
-// POST /api/users/onboard      — Complete onboarding with extra user details/info
-// router.post('/onboard', onboardUser);
+router.post('/onboard', onboard);
 
 // GET /api/users/profile/:phone  — Get user profile by phone number
 // router.get('/profile/:phone', getUserProfile);

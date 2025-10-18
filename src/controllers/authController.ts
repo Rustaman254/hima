@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 
 import OTP from '../models/user/OTP';
 import { sendOTP } from '../utils/smsUtil';
-import User from '../models/user/User';
+import User, { OnboardingStepKeys } from '../models/user/User';
 import type { IUser } from '../models/user/User';
 import { createPrivyWallet, createPolkadotWallet, createSmartWallet } from '../utils/privyUtil';
 import { deployWalletOnNetworks } from '../utils/blockchainDeploy';
@@ -21,10 +21,6 @@ const privy = new PrivyClient({
   appSecret: process.env.PRIVY_APP_SECRET!
 });
 
-export const OnboardingStepKeys = [
-  'phoneVerified', 'nameAdded', 'photoAdded', 'mobileMoneyLinked',
-  'nationalIdAdded', 'bodaRegNoAdded', 'communityEndorsements'
-];
 
 function normalizeKenyanPhone(phone: string): string {
   if (!phone || typeof phone !== 'string') {
@@ -60,7 +56,6 @@ export const registerUser = async (req: Request, res: Response) => {
     const { phone } = req.body;
     let formattedPhone = normalizeKenyanPhone(phone)
 
-    // Create Privy EVM wallet
     const privyWallet = await createPrivyWallet(formattedPhone);
     if (!privyWallet || typeof privyWallet.walletId !== 'string' || !privyWallet.walletId) {
       return res.status(500).json({ message: 'Failed to create Privy wallet. Try again.' });
@@ -68,17 +63,14 @@ export const registerUser = async (req: Request, res: Response) => {
 
     const { address: walletAddress, walletId } = privyWallet;
 
-    // Create Polkadot wallet
     const { address: polkadotAddress, mnemonic } = await createPolkadotWallet();
 
-    // Create permissionless smart wallet
     let smartWalletAddress: string = '';
     try {
       console.log('[Register] Creating smart wallet for user...');
       smartWalletAddress = await createSmartWallet(walletId, walletAddress);
     } catch (error) {
       console.warn('[Register] Smart wallet creation failed, will retry on OTP verification:', error);
-      // Continue with registration - smart wallet will be created on OTP verification
     }
 
     const onboardingSteps = OnboardingStepKeys.reduce(
@@ -150,7 +142,7 @@ export const sendOTPToPhone = async (req: Request, res: Response) => {
 };
 
 /**
- * Build user operation for EVM chains (BASE, CELO)
+ * Build user operation for EVM chains (BASE)
  */
 async function buildUserOp(walletAddress: string, chain: BlockchainNetwork): Promise<any> {
   const config = getChainConfig(chain);
@@ -200,9 +192,8 @@ async function createBoundSendSponsoredOp(privyWalletId: string, evmAddress: str
         throw new Error(`RPC URL not configured for chain ${chain}`);
       }
 
-      // Create public client for the specific chain
       const publicClient = createPublicClient({
-        chain: chain === BlockchainNetwork.BASE ? baseSepolia : baseSepolia, // adjust as needed
+        chain: chain === BlockchainNetwork.BASE ? baseSepolia : baseSepolia,
         transport: http(rpcUrl)
       }) as any;
 
@@ -272,7 +263,6 @@ export const verifyOTP = async (req: Request, res: Response) => {
     user.onboardingSteps['phoneVerified'] = true;
     user.onboardingSteps['mobileMoneyLinked'] = true;
 
-    // Create smart wallet if not already created
     if (!user.smartWalletAddress) {
       try {
         console.log('[OTP Verification] Creating smart wallet...');
@@ -280,19 +270,16 @@ export const verifyOTP = async (req: Request, res: Response) => {
         console.log('[OTP Verification] Smart wallet created:', user.smartWalletAddress);
       } catch (error) {
         console.error('[OTP Verification] Failed to create smart wallet:', error);
-        // Continue with deployment even if smart wallet creation fails
       }
     }
 
     await user.save();
 
-    // Create bound functions with user context
     const boundBuildUserOp = createBoundBuildUserOp();
     const boundSendSponsoredOp = await createBoundSendSponsoredOp(user.walletId, user.walletAddress);
 
     console.log(`[Deployment] Deploying to chains: ${blockchainNetworks.join(', ')}`);
 
-    // Deploy wallet to requested chains
     const deployResults = await deployWalletOnNetworks(
       user.walletId,
       user.walletAddress,
@@ -302,7 +289,6 @@ export const verifyOTP = async (req: Request, res: Response) => {
       boundSendSponsoredOp
     );
 
-    // Count successes and failures
     const successCount = Object.values(deployResults).filter(
       (r) => typeof r === 'string' && !r.startsWith('Error')
     ).length;
@@ -328,3 +314,116 @@ export const verifyOTP = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Verification failed', error: error instanceof Error ? error.message : error });
   }
 };
+
+function setOnboardingStep(user: any, key: string, value: boolean) {
+  if (
+    user.onboardingSteps instanceof Map ||
+    (typeof user.onboardingSteps?.set === 'function')
+  ) {
+    user.onboardingSteps.set(key, value);
+  } else {
+    user.onboardingSteps[key] = value;
+  }
+}
+
+function getOnboardingStep(user: any, key: string): boolean {
+  if (
+    user.onboardingSteps instanceof Map ||
+    (typeof user.onboardingSteps?.get === 'function')
+  ) {
+    return user.onboardingSteps.get(key);
+  } else {
+    return user.onboardingSteps[key];
+  }
+}
+
+export const onboard = async (req: Request, res: Response) => {
+  try {
+    const {
+      phone,
+      name,
+      photoUrl,
+      nationalId,
+      bodaRegNo,
+      mobileMoneyNumber,
+      coverageLevel
+    } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone is required.' });
+    }
+
+    const user = await User.findOne({ phone });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    let anyFieldProvided = false;
+
+    if (phone) {
+      user.phone = phone;
+      setOnboardingStep(user, 'phoneVerified', true);
+      anyFieldProvided = true;
+    }
+    if (name) {
+      user.name = name;
+      setOnboardingStep(user, 'nameAdded', true);
+      anyFieldProvided = true;
+    }
+    if (photoUrl) {
+      user.photoUrl = photoUrl;
+      setOnboardingStep(user, 'photoAdded', true);
+      anyFieldProvided = true;
+    }
+    if (nationalId) {
+      user.nationalId = nationalId;
+      setOnboardingStep(user, 'nationalIdAdded', true);
+      anyFieldProvided = true;
+    }
+    if (bodaRegNo) {
+      user.bodaRegNo = bodaRegNo;
+      setOnboardingStep(user, 'bodaRegNoAdded', true);
+      anyFieldProvided = true;
+    }
+    if (mobileMoneyNumber) {
+      user.mobileMoneyNumber = mobileMoneyNumber;
+      setOnboardingStep(user, 'mobileMoneyLinked', true);
+      anyFieldProvided = true;
+    }
+    if (coverageLevel) {
+      user.coverageLevel = coverageLevel;
+      anyFieldProvided = true;
+    }
+
+    const completedSteps = OnboardingStepKeys.filter((key) =>
+      getOnboardingStep(user, key) === true
+    );
+    user.onboardingStage = Math.min(completedSteps.length + 1, OnboardingStepKeys.length);
+
+    if (anyFieldProvided) {
+      user.onboardingCompleted = true;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'User onboarding fields updated.',
+      onboardingStage: user.onboardingStage,
+      onboardingCompleted: user.onboardingCompleted,
+      onboardingSteps: user.onboardingSteps,
+      user: {
+        phone: user.phone,
+        name: user.name,
+        photoUrl: user.photoUrl,
+        nationalId: user.nationalId,
+        bodaRegNo: user.bodaRegNo,
+        mobileMoneyNumber: user.mobileMoneyNumber,
+        coverageLevel: user.coverageLevel
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Onboard failed',
+      error: (error instanceof Error ? error.message : error)
+    });
+  }
+};
+
