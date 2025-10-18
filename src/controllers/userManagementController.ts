@@ -78,7 +78,6 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     const user = await User.findOne({ phone });
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
-    // Update fields if present
     if (name !== undefined) user.name = name;
     if (photoUrl !== undefined) user.photoUrl = photoUrl;
     if (nationalId !== undefined) user.nationalId = nationalId;
@@ -86,7 +85,6 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     if (mobileMoneyNumber !== undefined) user.mobileMoneyNumber = mobileMoneyNumber;
     if (coverageLevel !== undefined) user.coverageLevel = coverageLevel;
 
-    // Optionally update onboardingSteps from request (with safety)
     if (typeof incomingSteps === 'object' && incomingSteps !== null) {
       for (const key of Object.keys(incomingSteps)) {
         if (OnboardingStepKeys.includes(key)) {
@@ -129,6 +127,34 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     res.status(500).json({
       message: 'Update user failed',
       error: (error instanceof Error ? error.message : error)
+    });
+  }
+};
+
+export const deleteUser = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.params;
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone parameter is required.' });
+    }
+
+    const user = await User.findOneAndDelete({ phone });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json({
+      message: `User with phone ${phone} deleted.`,
+      user: {
+        _id: user._id,
+        phone: user.phone,
+        name: user.name
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Delete user failed',
+      error: error instanceof Error ? error.message : error
     });
   }
 };
