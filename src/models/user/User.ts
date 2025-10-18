@@ -5,6 +5,7 @@ export interface IUser extends Document {
   phoneVerified: boolean;
   walletAddress: string;
   walletId: string;
+  smartWalletAddress: string;
   polkadotAddress: string;
   polkadotMnemonic: string;
   name?: string;
@@ -34,6 +35,7 @@ const UserSchema: Schema = new Schema({
   nationalId: { type: String },
   walletAddress: { type: String, unique: true },
   walletId: { type: String, unique: true, required: true },
+  smartWalletAddress: { type: String, unique: true },
   polkadotAddress: { type: String, unique: true },
   polkadotMnemonic: { type: String, required: true },
   bodaRegNo: { type: String },

@@ -12,6 +12,7 @@
   "author": "Anwar Magara",
   "license": "ISC",
   "dependencies": {
+    "@alchemy/aa-core": "^3.19.0",
     "@hashgraph/sdk": "^2.75.0",
     "@kanalabs/paymaster-sdk": "^0.2.0",
     "@polkadot/api": "^16.4.9",
