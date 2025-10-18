@@ -16,7 +16,6 @@ import { PrivyClient } from "@privy-io/node";
 
 dotenv.config();
 
-// Initialize Privy client
 const privy = new PrivyClient({
   appId: process.env.PRIVY_APP_ID!,
   appSecret: process.env.PRIVY_APP_SECRET!
@@ -28,42 +27,38 @@ export const OnboardingStepKeys = [
 ];
 
 function normalizeKenyanPhone(phone: string): string {
-  let normalized = phone.replace(/\D/g, '');
-  if (normalized.startsWith('07') && normalized.length === 10) return '+254' + normalized.slice(1);
-  if (normalized.startsWith('7') && normalized.length === 9) return '+254' + normalized;
-  if (normalized.startsWith('254') && normalized.length === 12) return '+' + normalized;
-  if (normalized.startsWith('01') && normalized.length === 10) return '+254' + normalized.slice(1);
-  if (normalized.startsWith('+254') && normalized.length === 13) return normalized;
-  throw new Error('Invalid Kenyan phone number');
+  if (!phone || typeof phone !== 'string') {
+    throw new Error('Phone must be a non-empty string');
+  }
+
+  let normalized = phone.trim().replace(/\D/g, '');
+
+  console.log('[normalizeKenyanPhone] Input:', phone);
+  console.log('[normalizeKenyanPhone] After removing non-digits:', normalized);
+
+  if (normalized.startsWith('07') && normalized.length === 10) {
+    return '+254' + normalized.slice(1);
+  }
+  if (normalized.startsWith('7') && normalized.length === 9) {
+    return '+254' + normalized;
+  }
+  if (normalized.startsWith('254') && normalized.length === 12) {
+    return '+' + normalized;
+  }
+  if (normalized.startsWith('1') && normalized.length === 9) {
+    return '+254' + normalized;
+  }
+  if (normalized.startsWith('+254') || (normalized.startsWith('254') && normalized.length === 13)) {
+    return normalized.startsWith('+') ? normalized : '+' + normalized;
+  }
+
+  throw new Error(`Unable to normalize phone: ${phone}. Expected formats: 07XXXXXXXXX, 7XXXXXXXXX, 254XXXXXXXXXX, +254XXXXXXXXXX, or 01XXXXXXXXX`);
 }
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { phone } = req.body;
-    let formattedPhone = phone;
-
-    if (!phone) {
-      return res.status(400).json({ message: 'Phone number is required' });
-    }
-    if (!phone.match(/^(\+254|254|0|07)\d{9}$/)) {
-      return res.status(400).json({ message: 'Invalid phone number format' });
-    }
-    if (phone.startsWith('7') && phone.length === 9) {
-      formattedPhone = '254' + phone;
-    } else if (phone.startsWith('07') && phone.length === 10) {
-      formattedPhone = '+254' + phone.slice(1);
-    } else if (phone.startsWith('+254') && phone.length === 13) {
-      formattedPhone = phone
-    } else if (phone.startsWith('254') && phone.length === 12) {
-      formattedPhone = '+254' + phone.slice(1);
-    } else {
-      return res.status(400).json({ message: 'Phone number must be in +254, 254, 07, or 7 format followed by 9 digits' });
-    }
-
-    const existingUser = await User.findOne({ phone: formattedPhone });
-    if (existingUser) {
-      return res.status(409).json({ message: 'User already registered' });
-    }
+    let formattedPhone = normalizeKenyanPhone(phone)
 
     // Create Privy EVM wallet
     const privyWallet = await createPrivyWallet(formattedPhone);
@@ -209,7 +204,7 @@ async function createBoundSendSponsoredOp(privyWalletId: string, evmAddress: str
       const publicClient = createPublicClient({
         chain: chain === BlockchainNetwork.BASE ? baseSepolia : baseSepolia, // adjust as needed
         transport: http(rpcUrl)
-      });
+      }) as any;
 
       // Send transaction with gas sponsorship from funder wallet
       const result = await sendTransactionWithGasSponsorship(
@@ -252,8 +247,15 @@ export const verifyOTP = async (req: Request, res: Response) => {
     let normalizedPhone: string;
     try {
       normalizedPhone = normalizeKenyanPhone(phone);
-    } catch {
-      return res.status(400).json({ message: 'Invalid phone number format' });
+      console.log('[verifyOTP] Normalized phone:', normalizedPhone);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid phone format';
+      console.error('[verifyOTP] Phone normalization failed:', errorMessage);
+      return res.status(400).json({
+        message: 'Invalid phone number format',
+        details: errorMessage,
+        receivedPhone: phone
+      });
     }
 
     const otpDoc = await OTP.findOne({ phone: normalizedPhone, otp, verified: false }).sort({ createdAt: -1 });

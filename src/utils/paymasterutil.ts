@@ -4,12 +4,6 @@ import { PrivyClient } from "@privy-io/node";
 import { ethers } from "ethers";
 import { BlockchainNetwork, getChainConfig } from "../configs/blockchain";
 
-// Initialize Privy client once
-const privy = new PrivyClient({
-  appId: process.env.PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!
-});
-
 interface GetSponsoredSmartWalletClientParams {
   privy: PrivyClient;
   privyWalletId: string;

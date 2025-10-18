@@ -38,17 +38,14 @@ export async function deployWalletOnNetworks(
 
           console.log(`[Deployment] Deploying to ${chain}...`);
 
-          // Build user operation using provided/bound SDK function
           const userOp = await buildUserOp(walletAddress, chain);
 
-          // Get public client for the chain
           const viemChain = chain === BlockchainNetwork.BASE ? baseSepolia : celo;
           const publicClient = createPublicClient({
             chain: viemChain,
             transport: http(rpc)
-          });
+          }) as any;
 
-          // Send transaction with gas sponsorship via paymasterUtil
           const txHash = await sendTransactionWithGasSponsorship(
             userOp,
             publicClient,
