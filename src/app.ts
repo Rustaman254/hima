@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { connectDB } from "./configs/db";
 import authRouter from "./router/authRouter";
 import userRouter from "./router/userManagementRouter"
+import plansRouter from "./router/insurancePlansRoutes"
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(baseUrl + "/auth", authRouter);
 app.use(baseUrl + "/users", userRouter);
+app.use(baseUrl + "/insurance", plansRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello from the server!");
