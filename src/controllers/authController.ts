@@ -427,3 +427,46 @@ export const onboard = async (req: Request, res: Response) => {
   }
 };
 
+export const getUser = async (req: Request, res: Response) => {
+  try {
+    const { phone, id } = req.query;
+
+    let user;
+    if (phone) {
+      user = await User.findOne({ phone });
+    } else if (id) {
+      user = await User.findById(id);
+    } else {
+      return res.status(400).json({ message: 'Phone or id query parameter required.' });
+    }
+
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    res.status(200).json({
+      user: {
+        _id: user._id,
+        phone: user.phone,
+        phoneVerified: user.phoneVerified,
+        walletAddress: user.walletAddress,
+        walletId: user.walletId,
+        smartWalletAddress: user.smartWalletAddress,
+        polkadotAddress: user.polkadotAddress,
+        polkadotMnemonic: user.polkadotMnemonic,
+        name: user.name,
+        photoUrl: user.photoUrl,
+        nationalId: user.nationalId,
+        bodaRegNo: user.bodaRegNo,
+        mobileMoneyNumber: user.mobileMoneyNumber,
+        onboardingStage: user.onboardingStage,
+        onboardingSteps: user.onboardingSteps,
+        onboardingCompleted: user.onboardingCompleted,
+        coverageLevel: user.coverageLevel,
+        rewards: user.rewards,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Get user failed', error: (error instanceof Error ? error.message : error) });
+  }
+};

@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 
 import { connectDB } from "./configs/db";
 import authRouter from "./router/authRouter";
+import userRouter from "./router/userManagementRouter"
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ connectDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(baseUrl + "/auth", authRouter);
+app.use(baseUrl + "/users", userRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello from the server!");

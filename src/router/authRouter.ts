@@ -9,9 +9,6 @@ router.post('/send-otp', sendOTPToPhone);
 router.post('/verify-otp', verifyOTP);
 router.post('/onboard', onboard);
 
-// GET /api/users/profile/:phone  — Get user profile by phone number
-// router.get('/profile/:phone', getUserProfile);
-
 // PUT /api/users/profile/:phone  — Update user profile fields
 // router.put('/profile/:phone', updateUser);
 
