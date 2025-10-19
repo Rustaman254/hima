@@ -130,7 +130,6 @@ export const sendOTPToPhone = async (req: Request, res: Response) => {
     console.log(otp, phone);
 
     const smsResponse = await sendOTP(phone, otp);
-    console.log(smsResponse);
 
     res.status(200).json({
       message: 'OTP sent to phone',

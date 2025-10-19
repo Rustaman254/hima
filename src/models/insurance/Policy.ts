@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IBodaInsurancePolicy extends Document {
-  user: Types.ObjectId; // The boda rider
+  user: Types.ObjectId; 
   bodaRegNo: string;
   plan: Types.ObjectId;
   policyNumber: string;
