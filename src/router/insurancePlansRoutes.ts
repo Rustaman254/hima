@@ -5,7 +5,7 @@ import {
   addPlan,
   updatePlan,
   deletePlan
-} from '../controllers/insurancePlansController';
+} from '../controllers/insurancePlansController.js';
 
 const router: ExpressRouter = Router();
 

@@ -2,7 +2,8 @@ import { createPublicClient, http, type PublicClient, getAddress } from "viem";
 import { baseSepolia, celo } from "viem/chains";
 import { PrivyClient } from "@privy-io/node";
 import { ethers } from "ethers";
-import { BlockchainNetwork, getChainConfig } from "../configs/blockchain";
+
+import { BlockchainNetwork, getChainConfig } from "../configs/blockchain.js";
 
 interface GetSponsoredSmartWalletClientParams {
   privy: PrivyClient;

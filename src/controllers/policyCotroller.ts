@@ -1,6 +1,6 @@
-// controllers/insurancePolicyController.ts
 import type { Request, Response } from 'express';
-import { BodaInsurancePolicy } from '../models/insurance/Policy';
+
+import { BodaInsurancePolicy } from '../models/insurance/Policy.js';
 
 export const addPolicy = async (req: Request, res: Response) => {
   try {

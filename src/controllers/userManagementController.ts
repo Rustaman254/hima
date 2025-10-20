@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
-import User, { OnboardingStepKeys } from '../models/user/User';
+
+import User, { OnboardingStepKeys } from '../models/user/User.js';
 
 export const getUserProfile = async (req: Request, res: Response) => {
   try {

@@ -1,5 +1,6 @@
 import { Router, type Router as ExpressRouter } from 'express';
-import { registerUser, sendOTPToPhone, verifyOTP, onboard } from '../controllers/authController';
+
+import { registerUser, sendOTPToPhone, verifyOTP, onboard } from '../controllers/authController.js';
 
 
 const router: ExpressRouter = Router();

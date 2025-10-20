@@ -3,16 +3,16 @@ import { ethers } from 'ethers';
 import { createPublicClient, http, type PublicClient } from "viem";
 import { baseSepolia } from "viem/chains";
 import dotenv from 'dotenv';
-
-import OTP from '../models/user/OTP';
-import { sendOTP } from '../utils/smsUtil';
-import User, { OnboardingStepKeys } from '../models/user/User';
-import type { IUser } from '../models/user/User';
-import { createPrivyWallet, createPolkadotWallet, createSmartWallet } from '../utils/privyUtil';
-import { deployWalletOnNetworks } from '../utils/blockchainDeploy';
-import { BlockchainNetwork, getChainConfig } from '../configs/blockchain';
-import { sendTransactionWithGasSponsorship, fundMerchantWallet } from '../utils/paymasterutil';
 import { PrivyClient } from "@privy-io/node";
+
+import OTP from '../models/user/OTP.js';
+import { sendOTP } from '../utils/smsUtil.js';
+import User, { OnboardingStepKeys } from '../models/user/User.js';
+import type { IUser } from '../models/user/User.js';
+import { createPrivyWallet, createPolkadotWallet, createSmartWallet } from '../utils/privyUtil.js';
+import { deployWalletOnNetworks } from '../utils/blockchainDeploy.js';
+import { BlockchainNetwork, getChainConfig } from '../configs/blockchain.js';
+import { sendTransactionWithGasSponsorship, fundMerchantWallet } from '../utils/paymasterutil.js';
 
 dotenv.config();
 

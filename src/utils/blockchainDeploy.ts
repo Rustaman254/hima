@@ -1,11 +1,12 @@
-import { BlockchainNetwork, getChainConfig } from '../configs/blockchain';
-import { sendTransactionWithGasSponsorship } from '../utils/paymasterutil';
 import { Client, AccountId, PrivateKey, TransferTransaction } from '@hashgraph/sdk';
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { ethers } from 'ethers';
 import { PrivyClient } from '@privy-io/node';
 import { createPublicClient, http } from 'viem';
 import { baseSepolia, celo } from 'viem/chains';
+
+import { BlockchainNetwork, getChainConfig } from '../configs/blockchain.js';
+import { sendTransactionWithGasSponsorship } from '../utils/paymasterutil.js';
 
 type DeploymentResult = { [chain in BlockchainNetwork]?: string | undefined | object };
 

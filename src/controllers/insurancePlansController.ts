@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
-import type { IBodaInsurancePlan } from '../models/insurance/Plans';
-import { BodaInsurancePlan } from '../models/insurance/Plans';
+
+import type { IBodaInsurancePlan } from '../models/insurance/Plans.js';
+import { BodaInsurancePlan } from '../models/insurance/Plans.js';
 
 const defaultPlans: Record<string, Partial<IBodaInsurancePlan>> = {
   tpo: {

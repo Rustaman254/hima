@@ -4,11 +4,11 @@ import cors from 'cors'
 import helmet from "helmet";
 import morgan from "morgan";
 
-import { connectDB } from "./configs/db";
-import authRouter from "./router/authRouter";
-import userRouter from "./router/userManagementRouter"
-import plansRouter from "./router/insurancePlansRoutes"
-import policyRouter from "./router/policyRouter"
+import { connectDB } from "./configs/db.js";
+import authRouter from "./router/authRouter.js";
+import userRouter from "./router/userManagementRouter.js"
+import plansRouter from "./router/insurancePlansRoutes.js"
+import policyRouter from "./router/policyRouter.js"
 
 dotenv.config();
 

@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter } from 'express';
-import { getUserProfile, updateUserProfile, deleteUser } from '../controllers/userManagementController';
+import { getUserProfile, updateUserProfile, deleteUser } from '../controllers/userManagementController.js';
 
 
 const router: ExpressRouter = Router();

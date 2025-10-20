@@ -5,7 +5,7 @@ import {
   getPolicy,
   updatePolicy,
   deactivatePolicy
-} from '../controllers/policyCotroller';
+} from '../controllers/policyCotroller.js';
 
 const router: ExpressRouter = Router();
 
