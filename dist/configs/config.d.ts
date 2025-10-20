@@ -1,9 +1,9 @@
 export declare const configENV: {
     baseUrl: string;
-    ATApiKey: string | undefined;
-    ATUsername: string | undefined;
-    ATSenderId: string | undefined;
-    priviSecret: string | undefined;
-    privyAppId: string | undefined;
+    ATApiKey: string;
+    ATUsername: string;
+    ATSenderId: string;
+    priviSecret: string;
+    privyAppId: string;
 };
 //# sourceMappingURL=config.d.ts.map

@@ -8,48 +8,48 @@ export declare const TestnetConfigs: {
     base: {
         caip2: string;
         chainId: number;
-        rpc: string | undefined;
+        rpc: string;
     };
     celo: {
         caip2: string;
         chainId: number;
-        rpc: string | undefined;
+        rpc: string;
     };
     hedera: {
         network: string;
-        rpc: string | undefined;
+        rpc: string;
     };
     polkadot: {
-        nodeUrl: string | undefined;
+        nodeUrl: string;
     };
 };
 export declare const MainnetConfigs: {
     base: {
         caip2: string;
         chainId: number;
-        rpc: string | undefined;
+        rpc: string;
     };
     celo: {
         caip2: string;
         chainId: number;
-        rpc: string | undefined;
+        rpc: string;
     };
     hedera: {
         network: string;
-        rpc: string | undefined;
+        rpc: string;
     };
     polkadot: {
-        nodeUrl: string | undefined;
+        nodeUrl: string;
     };
 };
 export declare const getChainConfig: (chain: BlockchainNetwork) => {
     caip2: string;
     chainId: number;
-    rpc: string | undefined;
+    rpc: string;
 } | {
     network: string;
-    rpc: string | undefined;
+    rpc: string;
 } | {
-    nodeUrl: string | undefined;
+    nodeUrl: string;
 };
 //# sourceMappingURL=blockchain.d.ts.map
