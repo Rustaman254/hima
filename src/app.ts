@@ -43,11 +43,29 @@ app.use(baseUrl + "/auth", authRouter);
 app.use(baseUrl + "/users", userRouter);
 app.use(baseUrl + "/insurance", plansRouter);
 app.use(baseUrl + "/insurance", policyRouter);
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || 'Internal Server Error',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    }
+  });
+});
 
 app.get("/", (req, res) => {
   res.send("Hello from the server!");
 });
 
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
