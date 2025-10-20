@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { addPolicy, listPolicies, getPolicy, updatePolicy, deactivatePolicy } from '../controllers/policyCotroller';
+const router = Router();
+router.post('/new', addPolicy);
+router.get('/policies', listPolicies);
+router.get('/policies/:id', getPolicy);
+router.patch('/policies/:id', updatePolicy);
+router.delete('/policies/:id', deactivatePolicy);
+export default router;
+//# sourceMappingURL=policyRouter.js.map

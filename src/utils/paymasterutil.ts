@@ -42,7 +42,7 @@ export const getSponsoredSmartWalletClient = async ({
   const publicClient = createPublicClient({
     chain: viemChain,
     transport: http(rpcUrl)
-  });
+  }) as any;
 
   const smartAccountClient = {
     sendUserOperation: async (userOp: any) => {
@@ -239,8 +239,8 @@ export const fundUserWallet = async (
       return tx.hash;
     }
 
-    console.log(`[Gas Sponsorship] Funding confirmed: ${receipt?.transactionHash}`);
-    return receipt?.transactionHash || tx.hash;
+    console.log(`[Gas Sponsorship] Funding confirmed: ${receipt?.hash}`);
+    return receipt?.hash || tx.hash;
   } catch (error) {
     console.error("[Gas Sponsorship] Funding error:", error);
     // Don't throw - continue with main transaction even if funding fails

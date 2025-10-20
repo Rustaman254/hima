@@ -72,6 +72,9 @@ importers:
         specifier: ^2.37.13
         version: 2.38.1(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
+      '@types/africastalking':
+        specifier: ^0.6.2
+        version: 0.6.2
       '@types/bcrypt':
         specifier: ^6.0.0
         version: 6.0.0
@@ -828,6 +831,9 @@ packages:
 
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
+
+  '@types/africastalking@0.6.2':
+    resolution: {integrity: sha512-9SUZyQEQVUw8ww7Wc24r+pi9OvBHOzWU+/yEdQV0opfaYN9sNb6gVK1ugMxIlBlGGEnTzlCx8roqjL9I3Bbxvw==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -3942,6 +3948,8 @@ snapshots:
   '@tsconfig/node14@1.0.3': {}
 
   '@tsconfig/node16@1.0.4': {}
+
+  '@types/africastalking@0.6.2': {}
 
   '@types/babel__core@7.20.5':
     dependencies:

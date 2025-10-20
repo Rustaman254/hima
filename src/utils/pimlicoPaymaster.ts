@@ -35,7 +35,7 @@ export const getSponsoredSmartWalletClient = async ({
   const publicClient = createPublicClient({
     chain,
     transport: http(rpcUrl)
-  });
+  }) as any;
 
   const smartAccountClient = {
     sendUserOperation: async (userOp: any) => {
@@ -111,7 +111,7 @@ export const sendTransactionWithGasSponsorship = async (
     const feeData = await provider.getFeeData();
     const gasPrice = feeData.gasPrice || BigInt(1000000000);
     const gasNeeded = gasEstimate * gasPrice;
-    
+
     console.log(`[Gas Sponsorship] Gas needed: ${ethers.formatEther(gasNeeded)} ETH`);
 
     // Step 3: Check if merchant needs gas funding
@@ -121,7 +121,7 @@ export const sendTransactionWithGasSponsorship = async (
 
       // Fund merchant from funder wallet
       await fundMerchantWallet(evmAddress, gasShortfall, provider);
-      
+
       // Wait for the funding to settle
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
@@ -135,7 +135,7 @@ export const sendTransactionWithGasSponsorship = async (
     }
 
     const funderWallet = new ethers.Wallet(funderPrivateKey, provider);
-    
+
     const tx = await funderWallet.sendTransaction({
       to: getAddress(to),
       data: data,
@@ -152,8 +152,7 @@ export const sendTransactionWithGasSponsorship = async (
   } catch (error) {
     console.error("[Gas Sponsorship] Error:", error);
     throw new Error(
-      `Failed to send transaction with gas sponsorship: ${
-        error instanceof Error ? error.message : String(error)
+      `Failed to send transaction with gas sponsorship: ${error instanceof Error ? error.message : String(error)
       }`
     );
   }
@@ -187,28 +186,29 @@ export const fundMerchantWallet = async (
     const isContract = code !== "0x";
     console.log(`[Gas Sponsorship] Merchant is ${isContract ? "smart contract" : "EOA"}`);
 
-    // Prepare transaction parameters
-    const txParams = {
+    const txParams: {
+      to: `0x${string}`;
+      value: bigint;
+      gas?: bigint;
+    } = {
       to: getAddress(merchantAddress),
       value: amount
     };
 
-    // For contracts, need more gas; for EOAs, standard 21000 gas
     if (isContract) {
-      txParams.gasLimit = BigInt(100000);
+      txParams.gas = BigInt(100000);
     } else {
-      txParams.gasLimit = BigInt(21000);
+      txParams.gas = BigInt(21000);
     }
 
-    console.log(`[Gas Sponsorship] Sending ${ethers.formatEther(amount)} ETH with gasLimit ${txParams.gasLimit}`);
+    console.log(`[Gas Sponsorship] Sending ${ethers.formatEther(amount)} ETH with gasLimit ${txParams.gas}`);
 
     const tx = await funderWallet.sendTransaction(txParams);
 
     console.log(`[Gas Sponsorship] Funding transaction sent: ${tx.hash}`);
 
-    // Wait for confirmation (but don't fail if it reverts)
     const receipt = await provider.waitForTransaction(tx.hash, 1, 60000);
-    
+
     if (receipt && receipt.status === 0) {
       console.warn("[Gas Sponsorship] Funding transaction reverted (contract may not accept ETH)");
       // Don't throw - contract might not have receive() function
@@ -216,8 +216,8 @@ export const fundMerchantWallet = async (
       return tx.hash;
     }
 
-    console.log(`[Gas Sponsorship] Funding confirmed: ${receipt?.transactionHash}`);
-    return receipt?.transactionHash || tx.hash;
+    console.log(`[Gas Sponsorship] Funding confirmed: ${receipt?.hash}`);
+    return receipt?.hash || tx.hash;
   } catch (error) {
     console.error("[Gas Sponsorship] Funding error:", error);
     // Don't throw - continue with main transaction even if funding fails
