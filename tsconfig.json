@@ -6,7 +6,7 @@
     "target": "esnext",              // Latest JS features
     "moduleResolution": "node",      // Module resolution for Node.js
     "lib": ["esnext"],               // Latest JS library files
-    "types": ["node"],               // Node.js type definitions
+    // "types": ["node"],               // Node.js type definitions
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
