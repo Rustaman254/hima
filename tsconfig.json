@@ -1,12 +1,17 @@
+/// <reference no-default-lib="true"/>
 {
   "compilerOptions": {
-    "rootDir": "./src",              
-    "outDir": "./dist",              
-    "module": "esnext",            
-    "target": "esnext",              
-    "moduleResolution": "node",      
-    "lib": ["esnext"],               
-    "types": ["node"],               
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "node",
+    "lib": [
+      "esnext"
+    ],
+    "types": [
+      "node"
+    ],
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
@@ -14,16 +19,18 @@
     "exactOptionalPropertyTypes": false,
     "strict": false,
     "esModuleInterop": true,
-    "jsx": "react-jsx",              
+    "noEmitOnError": false,
+    "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src/**/*.ts"
+    "./src/**/*.ts"
   ],
   "exclude": [
     "node_modules",

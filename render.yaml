@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: hima
+    env: node
+    plan: free
+    packageManager: pnpm@9
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production

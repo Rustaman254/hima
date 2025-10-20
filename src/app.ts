@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from 'cors'
 
 import { connectDB } from "./configs/db";
 import authRouter from "./router/authRouter";
@@ -12,8 +13,27 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const baseUrl = "/api/v1";
+const corsOptions: cors.CorsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.ALLOWED_ORIGINS?.split(',') || 'https://hima-g018.onrender.com'
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
+  
+  credentials: true,
+  
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  
+  exposedHeaders: ['Content-Length', 'X-JSON-Response-Body'],
+  
+  maxAge: 86400, 
+  
+  optionsSuccessStatus: 200
+};
 
 connectDB();
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(baseUrl + "/auth", authRouter);
