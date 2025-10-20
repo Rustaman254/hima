@@ -1,52 +1,54 @@
-import { BlockchainNetwork, getChainConfig } from '../configs/blockchain';
-import { sendTransactionWithGasSponsorship } from '../utils/paymasterutil';
-import { Client, AccountId, PrivateKey, TransferTransaction } from '@hashgraph/sdk';
-import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
-import { ethers } from 'ethers';
-import { PrivyClient } from '@privy-io/node';
-import { createPublicClient, http } from 'viem';
-import { baseSepolia, celo } from 'viem/chains';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deployWalletOnNetworks = deployWalletOnNetworks;
+const blockchain_1 = require("../configs/blockchain");
+const paymasterutil_1 = require("../utils/paymasterutil");
+const sdk_1 = require("@hashgraph/sdk");
+const api_1 = require("@polkadot/api");
+const node_1 = require("@privy-io/node");
+const viem_1 = require("viem");
+const chains_1 = require("viem/chains");
 // Initialize Privy client
-const privy = new PrivyClient({
+const privy = new node_1.PrivyClient({
     appId: process.env.PRIVY_APP_ID,
     appSecret: process.env.PRIVY_APP_SECRET
 });
-export async function deployWalletOnNetworks(walletId, walletAddress, polkadotMnemonic, chains, buildUserOp, sendSponsoredOp) {
+async function deployWalletOnNetworks(walletId, walletAddress, polkadotMnemonic, chains, buildUserOp, sendSponsoredOp) {
     const results = {};
     for (const chain of chains) {
         try {
-            const config = getChainConfig(chain);
+            const config = (0, blockchain_1.getChainConfig)(chain);
             if (!config)
                 throw new Error('Unsupported blockchain network');
             switch (chain) {
-                case BlockchainNetwork.BASE:
-                case BlockchainNetwork.CELO: {
+                case blockchain_1.BlockchainNetwork.BASE:
+                case blockchain_1.BlockchainNetwork.CELO: {
                     const { caip2, chainId, rpc } = config;
                     if (!caip2 || !chainId || !rpc)
                         throw new Error('Missing EVM config');
                     console.log(`[Deployment] Deploying to ${chain}...`);
                     const userOp = await buildUserOp(walletAddress, chain);
-                    const viemChain = chain === BlockchainNetwork.BASE ? baseSepolia : celo;
-                    const publicClient = createPublicClient({
+                    const viemChain = chain === blockchain_1.BlockchainNetwork.BASE ? chains_1.baseSepolia : chains_1.celo;
+                    const publicClient = (0, viem_1.createPublicClient)({
                         chain: viemChain,
-                        transport: http(rpc)
+                        transport: (0, viem_1.http)(rpc)
                     });
-                    const txHash = await sendTransactionWithGasSponsorship(userOp, publicClient, privy, walletId, walletAddress, chain);
+                    const txHash = await (0, paymasterutil_1.sendTransactionWithGasSponsorship)(userOp, publicClient, privy, walletId, walletAddress, chain);
                     if (!txHash)
                         throw new Error('Failed to get transaction hash');
                     results[chain] = txHash;
                     console.log(`[Deployment] ${chain} deployment successful: ${txHash}`);
                     break;
                 }
-                case BlockchainNetwork.HEDERA: {
+                case blockchain_1.BlockchainNetwork.HEDERA: {
                     const { network } = config;
                     if (!network)
                         throw new Error('Missing Hedera config');
                     console.log(`[Deployment] Deploying to Hedera ${network}...`);
-                    const operatorId = AccountId.fromString(process.env.HEDERA_OPERATOR_ID);
-                    const operatorKey = PrivateKey.fromString(process.env.HEDERA_OPERATOR_KEY);
-                    const client = Client.forName(network).setOperator(operatorId, operatorKey);
-                    const tx = new TransferTransaction()
+                    const operatorId = sdk_1.AccountId.fromString(process.env.HEDERA_OPERATOR_ID);
+                    const operatorKey = sdk_1.PrivateKey.fromString(process.env.HEDERA_OPERATOR_KEY);
+                    const client = sdk_1.Client.forName(network).setOperator(operatorId, operatorKey);
+                    const tx = new sdk_1.TransferTransaction()
                         .addHbarTransfer(operatorId, -1)
                         .addHbarTransfer(walletAddress, 1);
                     const txResponse = await tx.execute(client);
@@ -55,21 +57,21 @@ export async function deployWalletOnNetworks(walletId, walletAddress, polkadotMn
                     console.log(`[Deployment] Hedera deployment successful: ${receipt.status.toString()}`);
                     break;
                 }
-                case BlockchainNetwork.POLKADOT: {
+                case blockchain_1.BlockchainNetwork.POLKADOT: {
                     const { nodeUrl } = config;
                     if (!nodeUrl)
                         throw new Error('Missing Polkadot nodeUrl');
                     console.log(`[Deployment] Deploying to Polkadot...`);
-                    const provider = new WsProvider(nodeUrl);
+                    const provider = new api_1.WsProvider(nodeUrl);
                     if (provider.ttl === undefined) {
                         // @ts-expect-error
                         provider.ttl = null;
                     }
-                    const api = await ApiPromise.create({ provider: provider });
+                    const api = await api_1.ApiPromise.create({ provider: provider });
                     const transferCall = api.tx.balances?.transfer;
                     if (!transferCall)
                         throw new Error('Polkadot API balances pallet missing');
-                    const keyring = new Keyring({ type: 'sr25519' });
+                    const keyring = new api_1.Keyring({ type: 'sr25519' });
                     const sender = keyring.addFromUri(polkadotMnemonic);
                     const transfer = transferCall(walletAddress, 1);
                     const hash = await transfer.signAndSend(sender);

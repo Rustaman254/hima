@@ -1,4 +1,7 @@
-import { BodaInsurancePlan } from '../models/insurance/Plans';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deletePlan = exports.updatePlan = exports.addPlan = exports.listPlans = exports.createDefaultPlans = void 0;
+const Plans_1 = require("../models/insurance/Plans");
 const defaultPlans = {
     tpo: {
         name: 'Third-Party Only (TPO)',
@@ -90,14 +93,14 @@ const defaultPlans = {
         isActive: true
     }
 };
-export const createDefaultPlans = async (req, res) => {
+const createDefaultPlans = async (req, res) => {
     try {
         const plansToCreate = Object.entries(defaultPlans);
         const results = [];
         for (const [, planData] of plansToCreate) {
-            const alreadyExists = await BodaInsurancePlan.findOne({ name: planData.name });
+            const alreadyExists = await Plans_1.BodaInsurancePlan.findOne({ name: planData.name });
             if (!alreadyExists) {
-                const plan = new BodaInsurancePlan(planData);
+                const plan = new Plans_1.BodaInsurancePlan(planData);
                 await plan.save();
                 results.push(plan);
             }
@@ -111,7 +114,8 @@ export const createDefaultPlans = async (req, res) => {
         });
     }
 };
-export const listPlans = async (req, res) => {
+exports.createDefaultPlans = createDefaultPlans;
+const listPlans = async (req, res) => {
     try {
         const { type, active, targetVehicleType } = req.query;
         const filter = {};
@@ -121,7 +125,7 @@ export const listPlans = async (req, res) => {
             filter.isActive = active === 'true';
         if (targetVehicleType)
             filter.targetVehicleType = targetVehicleType;
-        const plans = await BodaInsurancePlan.find(filter).sort({ createdAt: -1 });
+        const plans = await Plans_1.BodaInsurancePlan.find(filter).sort({ createdAt: -1 });
         res.status(200).json({ plans });
     }
     catch (error) {
@@ -131,9 +135,10 @@ export const listPlans = async (req, res) => {
         });
     }
 };
-export const addPlan = async (req, res) => {
+exports.listPlans = listPlans;
+const addPlan = async (req, res) => {
     try {
-        const newPlan = new BodaInsurancePlan({
+        const newPlan = new Plans_1.BodaInsurancePlan({
             ...req.body,
             isActive: req.body.isActive !== undefined ? req.body.isActive : true
         });
@@ -147,10 +152,11 @@ export const addPlan = async (req, res) => {
         });
     }
 };
-export const updatePlan = async (req, res) => {
+exports.addPlan = addPlan;
+const updatePlan = async (req, res) => {
     try {
         const { id } = req.params;
-        const updated = await BodaInsurancePlan.findByIdAndUpdate(id, req.body, { new: true });
+        const updated = await Plans_1.BodaInsurancePlan.findByIdAndUpdate(id, req.body, { new: true });
         if (!updated)
             return res.status(404).json({ message: 'Plan not found.' });
         res.status(200).json({ message: 'Plan updated', plan: updated });
@@ -162,10 +168,11 @@ export const updatePlan = async (req, res) => {
         });
     }
 };
-export const deletePlan = async (req, res) => {
+exports.updatePlan = updatePlan;
+const deletePlan = async (req, res) => {
     try {
         const { id } = req.params;
-        const deleted = await BodaInsurancePlan.findByIdAndUpdate(id, { isActive: false }, { new: true });
+        const deleted = await Plans_1.BodaInsurancePlan.findByIdAndUpdate(id, { isActive: false }, { new: true });
         if (!deleted)
             return res.status(404).json({ message: 'Plan not found.' });
         res.status(200).json({ message: 'Plan deactivated', plan: deleted });
@@ -177,4 +184,5 @@ export const deletePlan = async (req, res) => {
         });
     }
 };
+exports.deletePlan = deletePlan;
 //# sourceMappingURL=insurancePlansController.js.map

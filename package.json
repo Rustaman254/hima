@@ -1,16 +1,23 @@
 {
-  "name": "server",
-  "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
-  "type": "module",
-    "scripts": {
-    "start": "node dist/app.js",
-    "dev": "nodemon",
-    "build": "tsc"
-  },
+  "name": "express-api-starter-ts",
+  "version": "2.0.0",
+  "description": "A basic starter for an express.js v5 API with Typescript",
   "author": "Anwar Magara",
-  "license": "ISC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/w3cj/express-api-starter-ts.git"
+  },
+  "keywords": [],
+  "main": "src/app.ts",
+  "scripts": {
+    "start": "node --env-file=.env dist/src/app.js",
+    "dev": "tsx watch --env-file=.env src/app.ts",
+    "build": "tsc",
+    "lint": "eslint --fix src test",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@alchemy/aa-core": "^3.19.0",
     "@hashgraph/sdk": "^2.75.0",
@@ -23,28 +30,38 @@
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
+    "dotenv": "^17.2.3",
     "ethers": "^6.15.0",
     "ethr-did": "^3.0.38",
     "express": "^5.1.0",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.12.24",
     "mongoose": "^8.19.1",
+    "morgan": "^1.10.1",
     "permissionless": "^0.2.57",
     "twilio": "^5.10.3",
-    "viem": "^2.37.13"
+    "viem": "2.38.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^4.19.0",
     "@types/africastalking": "^0.6.2",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/mongodb": "^4.0.6",
-    "@types/node": "^24.6.2",
+    "@types/mongodb": "^4.0.7",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.9.0",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^9.38.0",
+    "eslint-plugin-format": "^1.0.2",
     "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
+    "supertest": "^7.1.4",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.2"
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

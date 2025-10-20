@@ -1,17 +1,56 @@
-import { ethers } from 'ethers';
-import { createPublicClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
-import dotenv from 'dotenv';
-import OTP from '../models/user/OTP';
-import { sendOTP } from '../utils/smsUtil';
-import User, { OnboardingStepKeys } from '../models/user/User';
-import { createPrivyWallet, createPolkadotWallet, createSmartWallet } from '../utils/privyUtil';
-import { deployWalletOnNetworks } from '../utils/blockchainDeploy';
-import { BlockchainNetwork, getChainConfig } from '../configs/blockchain';
-import { sendTransactionWithGasSponsorship, fundMerchantWallet } from '../utils/paymasterutil';
-import { PrivyClient } from "@privy-io/node";
-dotenv.config();
-const privy = new PrivyClient({
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getUser = exports.onboard = exports.verifyOTP = exports.sendOTPToPhone = exports.registerUser = void 0;
+const ethers_1 = require("ethers");
+const viem_1 = require("viem");
+const chains_1 = require("viem/chains");
+const dotenv_1 = __importDefault(require("dotenv"));
+const OTP_1 = __importDefault(require("../models/user/OTP"));
+const smsUtil_1 = require("../utils/smsUtil");
+const User_1 = __importStar(require("../models/user/User"));
+const privyUtil_1 = require("../utils/privyUtil");
+const blockchainDeploy_1 = require("../utils/blockchainDeploy");
+const blockchain_1 = require("../configs/blockchain");
+const paymasterutil_1 = require("../utils/paymasterutil");
+const node_1 = require("@privy-io/node");
+dotenv_1.default.config();
+const privy = new node_1.PrivyClient({
     appId: process.env.PRIVY_APP_ID,
     appSecret: process.env.PRIVY_APP_SECRET
 });
@@ -39,26 +78,26 @@ function normalizeKenyanPhone(phone) {
     }
     throw new Error(`Unable to normalize phone: ${phone}. Expected formats: 07XXXXXXXXX, 7XXXXXXXXX, 254XXXXXXXXXX, +254XXXXXXXXXX, or 01XXXXXXXXX`);
 }
-export const registerUser = async (req, res) => {
+const registerUser = async (req, res) => {
     try {
         const { phone } = req.body;
         let formattedPhone = normalizeKenyanPhone(phone);
-        const privyWallet = await createPrivyWallet(formattedPhone);
+        const privyWallet = await (0, privyUtil_1.createPrivyWallet)(formattedPhone);
         if (!privyWallet || typeof privyWallet.walletId !== 'string' || !privyWallet.walletId) {
             return res.status(500).json({ message: 'Failed to create Privy wallet. Try again.' });
         }
         const { address: walletAddress, walletId } = privyWallet;
-        const { address: polkadotAddress, mnemonic } = await createPolkadotWallet();
+        const { address: polkadotAddress, mnemonic } = await (0, privyUtil_1.createPolkadotWallet)();
         let smartWalletAddress = '';
         try {
             console.log('[Register] Creating smart wallet for user...');
-            smartWalletAddress = await createSmartWallet(walletId, walletAddress);
+            smartWalletAddress = await (0, privyUtil_1.createSmartWallet)(walletId, walletAddress);
         }
         catch (error) {
             console.warn('[Register] Smart wallet creation failed, will retry on OTP verification:', error);
         }
-        const onboardingSteps = OnboardingStepKeys.reduce((obj, key) => ({ ...obj, [key]: false }), {});
-        const user = new User({
+        const onboardingSteps = User_1.OnboardingStepKeys.reduce((obj, key) => ({ ...obj, [key]: false }), {});
+        const user = new User_1.default({
             phone: formattedPhone,
             walletAddress,
             polkadotAddress,
@@ -92,17 +131,18 @@ export const registerUser = async (req, res) => {
         });
     }
 };
-export const sendOTPToPhone = async (req, res) => {
+exports.registerUser = registerUser;
+const sendOTPToPhone = async (req, res) => {
     try {
         const { phone } = req.body;
         if (!phone)
             return res.status(400).json({ message: 'Phone required' });
         const otp = Math.floor(100000 + Math.random() * 900000).toString().padStart(6, '0');
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-        await OTP.deleteMany({ phone, verified: false });
-        await OTP.create({ phone, otp, expiresAt });
+        await OTP_1.default.deleteMany({ phone, verified: false });
+        await OTP_1.default.create({ phone, otp, expiresAt });
         console.log(otp, phone);
-        const smsResponse = await sendOTP(phone, otp);
+        const smsResponse = await (0, smsUtil_1.sendOTP)(phone, otp);
         res.status(200).json({
             message: 'OTP sent to phone',
             smsResponse
@@ -112,11 +152,12 @@ export const sendOTPToPhone = async (req, res) => {
         res.status(500).json({ message: 'Failed to send OTP', error: error instanceof Error ? error.message : error });
     }
 };
+exports.sendOTPToPhone = sendOTPToPhone;
 /**
  * Build user operation for EVM chains (BASE)
  */
 async function buildUserOp(walletAddress, chain) {
-    const config = getChainConfig(chain);
+    const config = (0, blockchain_1.getChainConfig)(chain);
     if (!config || !('rpc' in config)) {
         throw new Error(`No RPC URL for chain ${chain}`);
     }
@@ -124,7 +165,7 @@ async function buildUserOp(walletAddress, chain) {
     if (!rpcUrl) {
         throw new Error(`RPC URL not configured for chain ${chain}`);
     }
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const provider = new ethers_1.ethers.JsonRpcProvider(rpcUrl);
     // Simple transfer operation for wallet initialization
     const gasEstimate = await provider.estimateGas({
         to: walletAddress,
@@ -147,7 +188,7 @@ async function buildUserOp(walletAddress, chain) {
 async function createBoundSendSponsoredOp(privyWalletId, evmAddress) {
     return async (userOp, chain) => {
         try {
-            const config = getChainConfig(chain);
+            const config = (0, blockchain_1.getChainConfig)(chain);
             if (!config || !('rpc' in config)) {
                 throw new Error(`No RPC URL for chain ${chain}`);
             }
@@ -155,12 +196,12 @@ async function createBoundSendSponsoredOp(privyWalletId, evmAddress) {
             if (!rpcUrl) {
                 throw new Error(`RPC URL not configured for chain ${chain}`);
             }
-            const publicClient = createPublicClient({
-                chain: chain === BlockchainNetwork.BASE ? baseSepolia : baseSepolia,
-                transport: http(rpcUrl)
+            const publicClient = (0, viem_1.createPublicClient)({
+                chain: chain === blockchain_1.BlockchainNetwork.BASE ? chains_1.baseSepolia : chains_1.baseSepolia,
+                transport: (0, viem_1.http)(rpcUrl)
             });
             // Send transaction with gas sponsorship from funder wallet
-            const result = await sendTransactionWithGasSponsorship(userOp, publicClient, privy, privyWalletId, evmAddress);
+            const result = await (0, paymasterutil_1.sendTransactionWithGasSponsorship)(userOp, publicClient, privy, privyWalletId, evmAddress);
             if (!result?.hash && !result?.userOpHash) {
                 throw new Error('No transaction hash returned from sponsored operation');
             }
@@ -181,7 +222,7 @@ function createBoundBuildUserOp() {
         return buildUserOp(walletAddress, chain);
     };
 }
-export const verifyOTP = async (req, res) => {
+const verifyOTP = async (req, res) => {
     try {
         const { phone, otp, blockchainNetworks } = req.body;
         if (!phone || !otp || !Array.isArray(blockchainNetworks) || blockchainNetworks.length === 0) {
@@ -201,14 +242,14 @@ export const verifyOTP = async (req, res) => {
                 receivedPhone: phone
             });
         }
-        const otpDoc = await OTP.findOne({ phone: normalizedPhone, otp, verified: false }).sort({ createdAt: -1 });
+        const otpDoc = await OTP_1.default.findOne({ phone: normalizedPhone, otp, verified: false }).sort({ createdAt: -1 });
         if (!otpDoc)
             return res.status(400).json({ message: 'Invalid code' });
         if (otpDoc.expiresAt < new Date())
             return res.status(400).json({ message: 'OTP expired' });
         otpDoc.verified = true;
         await otpDoc.save();
-        const user = await User.findOne({ phone: normalizedPhone });
+        const user = await User_1.default.findOne({ phone: normalizedPhone });
         if (!user)
             return res.status(404).json({ message: 'User not found' });
         user.phoneVerified = true;
@@ -217,7 +258,7 @@ export const verifyOTP = async (req, res) => {
         if (!user.smartWalletAddress) {
             try {
                 console.log('[OTP Verification] Creating smart wallet...');
-                user.smartWalletAddress = await createSmartWallet(user.walletId, user.walletAddress);
+                user.smartWalletAddress = await (0, privyUtil_1.createSmartWallet)(user.walletId, user.walletAddress);
                 console.log('[OTP Verification] Smart wallet created:', user.smartWalletAddress);
             }
             catch (error) {
@@ -228,7 +269,7 @@ export const verifyOTP = async (req, res) => {
         const boundBuildUserOp = createBoundBuildUserOp();
         const boundSendSponsoredOp = await createBoundSendSponsoredOp(user.walletId, user.walletAddress);
         console.log(`[Deployment] Deploying to chains: ${blockchainNetworks.join(', ')}`);
-        const deployResults = await deployWalletOnNetworks(user.walletId, user.walletAddress, user.polkadotMnemonic, blockchainNetworks, boundBuildUserOp, boundSendSponsoredOp);
+        const deployResults = await (0, blockchainDeploy_1.deployWalletOnNetworks)(user.walletId, user.walletAddress, user.polkadotMnemonic, blockchainNetworks, boundBuildUserOp, boundSendSponsoredOp);
         const successCount = Object.values(deployResults).filter((r) => typeof r === 'string' && !r.startsWith('Error')).length;
         const failureCount = blockchainNetworks.length - successCount;
         res.status(200).json({
@@ -252,6 +293,7 @@ export const verifyOTP = async (req, res) => {
         res.status(500).json({ message: 'Verification failed', error: error instanceof Error ? error.message : error });
     }
 };
+exports.verifyOTP = verifyOTP;
 function setOnboardingStep(user, key, value) {
     if (user.onboardingSteps instanceof Map ||
         (typeof user.onboardingSteps?.set === 'function')) {
@@ -270,13 +312,13 @@ function getOnboardingStep(user, key) {
         return user.onboardingSteps[key];
     }
 }
-export const onboard = async (req, res) => {
+const onboard = async (req, res) => {
     try {
         const { phone, name, photoUrl, nationalId, bodaRegNo, mobileMoneyNumber, coverageLevel } = req.body;
         if (!phone) {
             return res.status(400).json({ message: 'Phone is required.' });
         }
-        const user = await User.findOne({ phone });
+        const user = await User_1.default.findOne({ phone });
         if (!user)
             return res.status(404).json({ message: 'User not found.' });
         let anyFieldProvided = false;
@@ -314,8 +356,8 @@ export const onboard = async (req, res) => {
             user.coverageLevel = coverageLevel;
             anyFieldProvided = true;
         }
-        const completedSteps = OnboardingStepKeys.filter((key) => getOnboardingStep(user, key) === true);
-        user.onboardingStage = Math.min(completedSteps.length + 1, OnboardingStepKeys.length);
+        const completedSteps = User_1.OnboardingStepKeys.filter((key) => getOnboardingStep(user, key) === true);
+        user.onboardingStage = Math.min(completedSteps.length + 1, User_1.OnboardingStepKeys.length);
         if (anyFieldProvided) {
             user.onboardingCompleted = true;
         }
@@ -343,15 +385,16 @@ export const onboard = async (req, res) => {
         });
     }
 };
-export const getUser = async (req, res) => {
+exports.onboard = onboard;
+const getUser = async (req, res) => {
     try {
         const { phone, id } = req.query;
         let user;
         if (phone) {
-            user = await User.findOne({ phone });
+            user = await User_1.default.findOne({ phone });
         }
         else if (id) {
-            user = await User.findById(id);
+            user = await User_1.default.findById(id);
         }
         else {
             return res.status(400).json({ message: 'Phone or id query parameter required.' });
@@ -387,4 +430,5 @@ export const getUser = async (req, res) => {
         res.status(500).json({ message: 'Get user failed', error: (error instanceof Error ? error.message : error) });
     }
 };
+exports.getUser = getUser;
 //# sourceMappingURL=authController.js.map

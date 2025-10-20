@@ -114,19 +114,15 @@ export const sendTransactionWithGasSponsorship = async (
 
     console.log(`[Gas Sponsorship] Gas needed: ${ethers.formatEther(gasNeeded)} ETH`);
 
-    // Step 3: Check if merchant needs gas funding
     if (merchantBalance < gasNeeded) {
       const gasShortfall = gasNeeded - merchantBalance;
       console.log(`[Gas Sponsorship] Merchant needs ${ethers.formatEther(gasShortfall)} ETH for gas`);
 
-      // Fund merchant from funder wallet
       await fundMerchantWallet(evmAddress, gasShortfall, provider);
 
-      // Wait for the funding to settle
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    // Step 4: Send transaction via funder wallet
     console.log(`[Gas Sponsorship] Sending transaction via funder wallet`);
 
     const funderPrivateKey = process.env.FUNDER_PRIVATE_KEY;

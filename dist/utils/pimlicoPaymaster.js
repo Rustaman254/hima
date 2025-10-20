@@ -1,9 +1,12 @@
-import { createPublicClient, http, getAddress } from "viem";
-import { baseSepolia } from "viem/chains";
-import { PrivyClient } from "@privy-io/node";
-import { ethers } from "ethers";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.waitForTransactionReceipt = exports.fundMerchantWallet = exports.sendTransactionWithGasSponsorship = exports.getSponsoredSmartWalletClient = void 0;
+const viem_1 = require("viem");
+const chains_1 = require("viem/chains");
+const node_1 = require("@privy-io/node");
+const ethers_1 = require("ethers");
 // Initialize Privy client once
-const privy = new PrivyClient({
+const privy = new node_1.PrivyClient({
     appId: process.env.PRIVY_APP_ID,
     appSecret: process.env.PRIVY_APP_SECRET
 });
@@ -11,19 +14,19 @@ const privy = new PrivyClient({
  * Creates a smart wallet client with gas sponsorship capabilities
  * Returns both the smart account client (for sending operations) and public client (for querying)
  */
-export const getSponsoredSmartWalletClient = async ({ privy, privyWalletId, evmAddress }) => {
-    const chain = baseSepolia;
+const getSponsoredSmartWalletClient = async ({ privy, privyWalletId, evmAddress }) => {
+    const chain = chains_1.baseSepolia;
     const rpcUrl = process.env.RPC_URL || "https://sepolia.base.org";
-    const publicClient = createPublicClient({
+    const publicClient = (0, viem_1.createPublicClient)({
         chain,
-        transport: http(rpcUrl)
+        transport: (0, viem_1.http)(rpcUrl)
     });
     const smartAccountClient = {
         sendUserOperation: async (userOp) => {
-            return sendTransactionWithGasSponsorship(userOp, publicClient, privy, privyWalletId, evmAddress);
+            return (0, exports.sendTransactionWithGasSponsorship)(userOp, publicClient, privy, privyWalletId, evmAddress);
         },
         waitForUserOperationReceipt: async (params) => {
-            return waitForTransactionReceipt(params.hash, publicClient);
+            return (0, exports.waitForTransactionReceipt)(params.hash, publicClient);
         }
     };
     return {
@@ -31,6 +34,7 @@ export const getSponsoredSmartWalletClient = async ({ privy, privyWalletId, evmA
         publicClient
     };
 };
+exports.getSponsoredSmartWalletClient = getSponsoredSmartWalletClient;
 /**
  * Send transaction with gas sponsorship from a separate funder wallet
  *
@@ -46,10 +50,10 @@ export const getSponsoredSmartWalletClient = async ({ privy, privyWalletId, evmA
  * @param evmAddress - Merchant/user's EVM address
  * @returns Transaction hash and userOpHash
  */
-export const sendTransactionWithGasSponsorship = async (userOp, publicClient, privy, privyWalletId, evmAddress) => {
+const sendTransactionWithGasSponsorship = async (userOp, publicClient, privy, privyWalletId, evmAddress) => {
     try {
         const rpcUrl = process.env.RPC_URL || "https://sepolia.base.org";
-        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        const provider = new ethers_1.ethers.JsonRpcProvider(rpcUrl);
         const chainId = publicClient.chain?.id || 84532;
         const to = userOp.to || userOp.target;
         const data = userOp.data || userOp.callData;
@@ -61,36 +65,32 @@ export const sendTransactionWithGasSponsorship = async (userOp, publicClient, pr
         console.log(`[Gas Sponsorship] To: ${to}`);
         // Step 1: Get merchant's current balance
         const merchantBalance = await provider.getBalance(evmAddress);
-        console.log(`[Gas Sponsorship] Merchant balance: ${ethers.formatEther(merchantBalance)} ETH`);
+        console.log(`[Gas Sponsorship] Merchant balance: ${ethers_1.ethers.formatEther(merchantBalance)} ETH`);
         // Step 2: Estimate gas for the transaction
         const gasEstimate = await provider.estimateGas({
-            to: getAddress(to),
-            from: getAddress(evmAddress),
+            to: (0, viem_1.getAddress)(to),
+            from: (0, viem_1.getAddress)(evmAddress),
             data: data,
             value: value
         });
         const feeData = await provider.getFeeData();
         const gasPrice = feeData.gasPrice || BigInt(1000000000);
         const gasNeeded = gasEstimate * gasPrice;
-        console.log(`[Gas Sponsorship] Gas needed: ${ethers.formatEther(gasNeeded)} ETH`);
-        // Step 3: Check if merchant needs gas funding
+        console.log(`[Gas Sponsorship] Gas needed: ${ethers_1.ethers.formatEther(gasNeeded)} ETH`);
         if (merchantBalance < gasNeeded) {
             const gasShortfall = gasNeeded - merchantBalance;
-            console.log(`[Gas Sponsorship] Merchant needs ${ethers.formatEther(gasShortfall)} ETH for gas`);
-            // Fund merchant from funder wallet
-            await fundMerchantWallet(evmAddress, gasShortfall, provider);
-            // Wait for the funding to settle
+            console.log(`[Gas Sponsorship] Merchant needs ${ethers_1.ethers.formatEther(gasShortfall)} ETH for gas`);
+            await (0, exports.fundMerchantWallet)(evmAddress, gasShortfall, provider);
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
-        // Step 4: Send transaction via funder wallet
         console.log(`[Gas Sponsorship] Sending transaction via funder wallet`);
         const funderPrivateKey = process.env.FUNDER_PRIVATE_KEY;
         if (!funderPrivateKey) {
             throw new Error("FUNDER_PRIVATE_KEY not set. Cannot send transaction.");
         }
-        const funderWallet = new ethers.Wallet(funderPrivateKey, provider);
+        const funderWallet = new ethers_1.ethers.Wallet(funderPrivateKey, provider);
         const tx = await funderWallet.sendTransaction({
-            to: getAddress(to),
+            to: (0, viem_1.getAddress)(to),
             data: data,
             value: value === "0" ? BigInt(0) : BigInt(value),
             from: funderWallet.address
@@ -106,6 +106,7 @@ export const sendTransactionWithGasSponsorship = async (userOp, publicClient, pr
         throw new Error(`Failed to send transaction with gas sponsorship: ${error instanceof Error ? error.message : String(error)}`);
     }
 };
+exports.sendTransactionWithGasSponsorship = sendTransactionWithGasSponsorship;
 /**
  * Fund merchant wallet from funder wallet (separate wallet)
  * The funder wallet has its private key stored securely in FUNDER_PRIVATE_KEY env var
@@ -115,20 +116,20 @@ export const sendTransactionWithGasSponsorship = async (userOp, publicClient, pr
  * @param provider - Ethers provider
  * @returns Transaction hash of funding transaction
  */
-export const fundMerchantWallet = async (merchantAddress, amount, provider) => {
+const fundMerchantWallet = async (merchantAddress, amount, provider) => {
     try {
         const funderPrivateKey = process.env.FUNDER_PRIVATE_KEY;
         if (!funderPrivateKey) {
             throw new Error("FUNDER_PRIVATE_KEY not set in environment. Cannot sponsor gas.");
         }
-        const funderWallet = new ethers.Wallet(funderPrivateKey, provider);
+        const funderWallet = new ethers_1.ethers.Wallet(funderPrivateKey, provider);
         console.log(`[Gas Sponsorship] Funding from: ${funderWallet.address}`);
         // Check if merchant address is a smart contract or EOA
         const code = await provider.getCode(merchantAddress);
         const isContract = code !== "0x";
         console.log(`[Gas Sponsorship] Merchant is ${isContract ? "smart contract" : "EOA"}`);
         const txParams = {
-            to: getAddress(merchantAddress),
+            to: (0, viem_1.getAddress)(merchantAddress),
             value: amount
         };
         if (isContract) {
@@ -137,7 +138,7 @@ export const fundMerchantWallet = async (merchantAddress, amount, provider) => {
         else {
             txParams.gas = BigInt(21000);
         }
-        console.log(`[Gas Sponsorship] Sending ${ethers.formatEther(amount)} ETH with gasLimit ${txParams.gas}`);
+        console.log(`[Gas Sponsorship] Sending ${ethers_1.ethers.formatEther(amount)} ETH with gasLimit ${txParams.gas}`);
         const tx = await funderWallet.sendTransaction(txParams);
         console.log(`[Gas Sponsorship] Funding transaction sent: ${tx.hash}`);
         const receipt = await provider.waitForTransaction(tx.hash, 1, 60000);
@@ -158,6 +159,7 @@ export const fundMerchantWallet = async (merchantAddress, amount, provider) => {
         return "0x";
     }
 };
+exports.fundMerchantWallet = fundMerchantWallet;
 /**
  * Wait for transaction receipt with timeout
  *
@@ -165,7 +167,7 @@ export const fundMerchantWallet = async (merchantAddress, amount, provider) => {
  * @param publicClient - Viem public client
  * @returns Receipt details
  */
-export const waitForTransactionReceipt = async (hash, publicClient) => {
+const waitForTransactionReceipt = async (hash, publicClient) => {
     try {
         console.log(`[TX] Waiting for receipt: ${hash}`);
         const receipt = await publicClient.waitForTransactionReceipt({
@@ -183,4 +185,5 @@ export const waitForTransactionReceipt = async (hash, publicClient) => {
         throw error;
     }
 };
+exports.waitForTransactionReceipt = waitForTransactionReceipt;
 //# sourceMappingURL=pimlicoPaymaster.js.map

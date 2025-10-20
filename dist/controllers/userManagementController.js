@@ -1,11 +1,47 @@
-import User, { OnboardingStepKeys } from '../models/user/User';
-export const getUserProfile = async (req, res) => {
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteUser = exports.updateUserProfile = exports.getUserProfile = void 0;
+const User_1 = __importStar(require("../models/user/User"));
+const getUserProfile = async (req, res) => {
     try {
         const { phone } = req.params;
         if (!phone) {
             return res.status(400).json({ message: 'Phone parameter is required.' });
         }
-        const user = await User.findOne({ phone });
+        const user = await User_1.default.findOne({ phone });
         if (!user) {
             return res.status(404).json({ message: 'User not found.' });
         }
@@ -41,6 +77,7 @@ export const getUserProfile = async (req, res) => {
         });
     }
 };
+exports.getUserProfile = getUserProfile;
 function setOnboardingStep(user, key, value) {
     if (user.onboardingSteps instanceof Map ||
         (typeof user.onboardingSteps?.set === 'function')) {
@@ -50,14 +87,14 @@ function setOnboardingStep(user, key, value) {
         user.onboardingSteps[key] = value;
     }
 }
-export const updateUserProfile = async (req, res) => {
+const updateUserProfile = async (req, res) => {
     try {
         const { phone } = req.params;
         if (!phone) {
             return res.status(400).json({ message: 'Phone parameter is required.' });
         }
         const { name, photoUrl, nationalId, bodaRegNo, mobileMoneyNumber, coverageLevel, onboardingSteps: incomingSteps, onboardingStage, onboardingCompleted } = req.body;
-        const user = await User.findOne({ phone });
+        const user = await User_1.default.findOne({ phone });
         if (!user)
             return res.status(404).json({ message: 'User not found.' });
         if (name !== undefined)
@@ -74,7 +111,7 @@ export const updateUserProfile = async (req, res) => {
             user.coverageLevel = coverageLevel;
         if (typeof incomingSteps === 'object' && incomingSteps !== null) {
             for (const key of Object.keys(incomingSteps)) {
-                if (OnboardingStepKeys.includes(key)) {
+                if (User_1.OnboardingStepKeys.includes(key)) {
                     setOnboardingStep(user, key, Boolean(incomingSteps[key]));
                 }
             }
@@ -117,13 +154,14 @@ export const updateUserProfile = async (req, res) => {
         });
     }
 };
-export const deleteUser = async (req, res) => {
+exports.updateUserProfile = updateUserProfile;
+const deleteUser = async (req, res) => {
     try {
         const { phone } = req.params;
         if (!phone) {
             return res.status(400).json({ message: 'Phone parameter is required.' });
         }
-        const user = await User.findOneAndDelete({ phone });
+        const user = await User_1.default.findOneAndDelete({ phone });
         if (!user) {
             return res.status(404).json({ message: 'User not found.' });
         }
@@ -143,4 +181,5 @@ export const deleteUser = async (req, res) => {
         });
     }
 };
+exports.deleteUser = deleteUser;
 //# sourceMappingURL=userManagementController.js.map
