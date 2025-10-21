@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { PrivyClient } from "@privy-io/node";
 
 import OTP from '../models/user/OTP.js';
-import { generateJWT } from '../utils/jwtUtil';
+import { generateJWT } from '../utils/jwtUtil.js';
 import { sendOTP } from '../utils/smsUtil.js';
 import User, { OnboardingStepKeys } from '../models/user/User.js';
 import type { IUser } from '../models/user/User.js';

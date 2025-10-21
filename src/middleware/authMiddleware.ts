@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyJWT } from "../utils/jwtUtil";
+import { verifyJWT } from "../utils/jwtUtil.js";
 
 export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
