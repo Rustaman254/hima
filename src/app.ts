@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const baseUrl = "/api/v1";
 const corsOptions: cors.CorsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.ALLOWED_ORIGINS?.split(',') || 'https://hima-g018.onrender.com'
+    ? process.env.ALLOWED_ORIGINS?.split(',') || 'https://hima-client.vercel.app'
     : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
   
   credentials: true,
