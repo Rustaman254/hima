@@ -23,7 +23,6 @@ export const getUserProfile = async (req: Request, res: Response) => {
         walletId: user.walletId,
         smartWalletAddress: user.smartWalletAddress,
         polkadotAddress: user.polkadotAddress,
-        polkadotMnemonic: user.polkadotMnemonic,
         name: user.name,
         photoUrl: user.photoUrl,
         nationalId: user.nationalId,
