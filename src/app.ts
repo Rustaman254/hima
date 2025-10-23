@@ -10,6 +10,9 @@ import userRouter from "./router/userManagementRouter.js"
 import plansRouter from "./router/insurancePlansRoutes.js"
 import policyRouter from "./router/policyRouter.js"
 
+import './models/insurance/Claim.js';
+import './models/insurance/Policy.js';
+
 dotenv.config();
 
 const app = express();
