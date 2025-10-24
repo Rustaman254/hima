@@ -9,6 +9,7 @@ import authRouter from "./router/authRouter.js";
 import userRouter from "./router/userManagementRouter.js"
 import plansRouter from "./router/insurancePlansRoutes.js"
 import policyRouter from "./router/policyRouter.js"
+import claimsRouter from "./router/claims.js"
 
 import './models/insurance/Claim.js';
 import './models/insurance/Policy.js';
@@ -46,6 +47,7 @@ app.use(baseUrl + "/auth", authRouter);
 app.use(baseUrl + "/users", userRouter);
 app.use(baseUrl + "/insurance", plansRouter);
 app.use(baseUrl + "/insurance", policyRouter);
+app.use(baseUrl + "/insurance", claimsRouter);
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(err.status || 500).json({

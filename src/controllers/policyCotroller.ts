@@ -98,8 +98,8 @@ const pollOrderStatus = async (
 
   // Try both endpoints
   const endpoints = [
-    `${BASE_URL}/orders/${orderId}`,
-    `${BASE_URL}/orders/tx/${orderId}`
+    `${BASE_URL}/orders/0x${orderId}`,
+    `${BASE_URL}/orders/tx/0x${orderId}`
   ];
 
   console.log(`[Payment Poll] Starting poll for order: ${orderId}`);
@@ -233,6 +233,7 @@ export const initiatePolicy = async (req: AuthRequest, res: Response) => {
 
     let orderResult;
     let orderId: string;
+    console.log("creating Order", orderPayload)
     try {
       const resp = await axios.post(
         `${BASE_URL}/orders/create`,
@@ -245,6 +246,7 @@ export const initiatePolicy = async (req: AuthRequest, res: Response) => {
         }
       );
       orderResult = resp.data;
+      console.log(orderResult)
       orderId = orderResult?.data?.order_id || orderResult?.data?.tx_hash;
       if (!orderId || orderResult?.status !== "success") {
         return res.status(400).json({
@@ -252,6 +254,8 @@ export const initiatePolicy = async (req: AuthRequest, res: Response) => {
           orderResult
         });
       }
+
+      console.log(orderId)
     } catch (err: any) {
       return res.status(502).json({
         message: "Order API call failed",

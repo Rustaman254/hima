@@ -1,117 +1,168 @@
-import type { Request, Response } from 'express';
-import { BodaInsuranceClaim } from '../models/insurance/Claim.js';
-import { BodaInsurancePolicy } from '../models/insurance/Policy.js';
+import type { Request, Response } from "express";
+import mongoose from "mongoose";
+import { ethers } from "ethers";
+import { BodaInsuranceClaim } from "../models/insurance/Claim.js";
+import { BodaInsurancePolicy } from "../models/insurance/Policy.js";
+import HimaEscrowABI from "../../contracts/abi/escrow.json";
 
-export const createClaim = async (req: Request, res: Response) => {
+interface AuthRequest extends Request {
+  user?: any;
+}
+
+const rpc = process.env.NODE_ENV === "development" ? process.env.BASE_TESTNET_RPC : process.env.BASE_MAINNET_RPC;
+const provider = new ethers.JsonRpcProvider(rpc);
+const escrowAddress = process.env.ESCROW_ADDRESS!;
+const paymasterPrivateKey = process.env.PAYMASTER_WALLET_PRIVATE_KEY!;
+const paymasterWallet = new ethers.Wallet(paymasterPrivateKey, provider);
+const escrowContract = new ethers.Contract(escrowAddress, HimaEscrowABI, paymasterWallet);
+
+//----------------------------------------------------//
+// Blockchain Escrow Payout Handler
+//----------------------------------------------------//
+const payoutFromEscrow = async (claimId: number) => {
+  const gasEstimate = await escrowContract.payoutClaim.estimateGas(claimId);
+  const tx = await escrowContract.payoutClaim(claimId, {
+    gasLimit: gasEstimate * 120n / 100n,
+  });
+  const receipt = await tx.wait();
+  return { txHash: receipt.hash, blockNumber: receipt.blockNumber };
+};
+
+//----------------------------------------------------//
+// Create Claim — Logged-in User Only
+//----------------------------------------------------//
+export const createClaim = async (req: AuthRequest, res: Response) => {
   try {
-    const {
-      policy,
-      user,
-      claimNumber,
-      claimType,
-      bodaRegNo,
-      incidentDate,
-      description,
-      location,
-      policeAbstractUrl,
-      supportingDocuments,
-      amountClaimed,
-      amountApproved,
-      status,
-      auditTrail
-    } = req.body;
+    const userId = req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
-    if (!policy || !user || !claimNumber || !claimType || !bodaRegNo || !incidentDate || !amountClaimed) {
-      return res.status(400).json({
-        message: "Missing required fields"
-      });
-    }
+    const { policyId, claimType, incidentDate, description, location, amountClaimed } = req.body;
+    if (!policyId || !claimType || !incidentDate || !amountClaimed)
+      return res.status(400).json({ message: "Missing required fields." });
+
+    const policy = await BodaInsurancePolicy.findOne({ _id: policyId, user: userId })
+      .populate("user")
+      .populate("plan");
+    if (!policy)
+      return res.status(404).json({ message: "Policy not found or not owned by this user." });
+    if (!policy.isActive || policy.status !== "active")
+      return res.status(400).json({ message: `Policy ${policy.policyNumber} is inactive.` });
+
+    const timestamp = Date.now().toString().slice(-6);
+    const claimNumber = `CLM-${policy.policyNumber}-${timestamp}`;
 
     const newClaim = new BodaInsuranceClaim({
-      policy,
-      user,
+      user: userId,
+      policy: policy._id,
       claimNumber,
       claimType,
-      bodaRegNo,
+      bodaRegNo: policy.bodaRegNo,
       incidentDate,
       description,
       location,
-      policeAbstractUrl,
-      supportingDocuments,
       amountClaimed,
-      amountApproved,
-      status,
-      auditTrail
+      status: "submitted",
+      auditTrail: [
+        {
+          date: new Date(),
+          action: "claim_created",
+          user: userId,
+          note: `Claim created by user ${userId} under policy ${policy.policyNumber}`,
+        },
+      ],
     });
 
     await newClaim.save();
+    await BodaInsurancePolicy.findByIdAndUpdate(policy._id, { $push: { claims: newClaim._id } });
 
-    await BodaInsurancePolicy.findByIdAndUpdate(
-      policy,
-      { $push: { claims: newClaim._id } }
-    );
-
-    res.status(201).json({ message: "Claim created and linked", claim: newClaim });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to create claim", error: error instanceof Error ? error.message : error });
+    res.status(201).json({ message: "Claim created successfully", claim: newClaim });
+  } catch (error: any) {
+    res.status(500).json({ message: "Failed to create claim", error: error.message });
   }
 };
 
-export const listClaims = async (req: Request, res: Response) => {
+//----------------------------------------------------//
+// Approve Claim + Escrow Payout — Authenticated User
+//----------------------------------------------------//
+export const approveClaimAndPayout = async (req: AuthRequest, res: Response) => {
   try {
-    const { policy, user, status, claimType } = req.query;
-    const filter: any = {};
-    if (policy) filter.policy = policy;
-    if (user) filter.user = user;
-    if (status) filter.status = status;
-    if (claimType) filter.claimType = claimType;
+    const userId = req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
-    const claims = await BodaInsuranceClaim.find(filter)
-      .populate('policy')
-      .populate('user')
+    const { id } = req.params;
+    const { approvedAmount } = req.body;
+
+    const claim = await BodaInsuranceClaim.findOne({ _id: id, user: userId })
+      .populate("policy user");
+    if (!claim) return res.status(404).json({ message: "Claim not found or unauthorized" });
+
+    const policy: any = claim.policy;
+    const riderAddress = policy?.rider;
+    if (!riderAddress || !ethers.isAddress(riderAddress))
+      return res.status(400).json({ message: "Invalid wallet address for payout" });
+
+    const escrowClaimId = policy.claimId || 0;
+    const { txHash, blockNumber } = await payoutFromEscrow(escrowClaimId);
+
+    claim.status = "paid";
+    claim.amountApproved = approvedAmount;
+    claim.auditTrail.push({
+      date: new Date(),
+      action: "payout_completed",
+      user: userId,
+      note: `Payout from escrow success. TxHash: ${txHash}`,
+    });
+    await claim.save();
+
+    res.status(200).json({
+      message: "Payout executed successfully",
+      claim,
+      blockchain: { txHash, blockNumber, beneficiary: riderAddress },
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: "Failed to execute payout", error: error.message });
+  }
+};
+
+//----------------------------------------------------//
+// List Claims — Only for Logged-In User
+//----------------------------------------------------//
+export const listClaims = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const claims = await BodaInsuranceClaim.find({ user: userId })
+      .populate("policy")
+      .populate("user")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ claims });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to list claims", error: error instanceof Error ? error.message : error });
+  } catch (error: any) {
+    res.status(500).json({ message: "Failed to list claims", error: error.message });
   }
 };
 
-export const getClaim = async (req: Request, res: Response) => {
+//----------------------------------------------------//
+// Get Specific Claim — Validate Ownership
+//----------------------------------------------------//
+export const getClaim = async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
     const { id } = req.params;
-    const claim = await BodaInsuranceClaim.findById(id)
-      .populate('policy')
-      .populate('user');
-    if (!claim) return res.status(404).json({ message: "Claim not found." });
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: "Invalid claim ID." });
+
+    const claim = await BodaInsuranceClaim.findOne({ _id: id, user: userId })
+      .populate("policy")
+      .populate("user");
+    if (!claim)
+      return res.status(404).json({ message: "Claim not found or unauthorized." });
+
     res.status(200).json({ claim });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch claim", error: error instanceof Error ? error.message : error });
-  }
-};
-
-export const updateClaim = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const updated = await BodaInsuranceClaim.findByIdAndUpdate(id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ message: "Claim not found." });
-    res.status(200).json({ message: "Claim updated", claim: updated });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to update claim", error: error instanceof Error ? error.message : error });
-  }
-};
-
-export const deleteClaim = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const deleted = await BodaInsuranceClaim.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ message: "Claim not found." });
-
-    // Optionally remove from policy.claims array
-    await BodaInsurancePolicy.findByIdAndUpdate(deleted.policy, { $pull: { claims: deleted._id } });
-
-    res.status(200).json({ message: "Claim deleted", claim: deleted });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to delete claim", error: error instanceof Error ? error.message : error });
+  } catch (error: any) {
+    res.status(500).json({ message: "Failed to fetch claim", error: error.message });
   }
 };
