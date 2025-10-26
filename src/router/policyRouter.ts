@@ -15,7 +15,7 @@ const router: ExpressRouter = Router();
 
 router.post('/policies/initiate', authenticateJWT, initiatePolicy);
 router.post('/policies/complete', authenticateJWT, completePolicy);
-router.get('/policies/payment-status/:orderId', checkPaymentStatus);
+router.post('/policies/payment-status/:transactionId', checkPaymentStatus);
 router.get('/policies/me', authenticateJWT, listUserPolicies);
 router.get('/policies', listPolicies);
 router.get('/policies/:id',authenticateJWT, getPolicy);
